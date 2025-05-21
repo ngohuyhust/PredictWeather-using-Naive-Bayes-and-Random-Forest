@@ -36,7 +36,7 @@ def load_file(path):
     df['label'] = df['prcp'].apply(lambda x: "Rain" if x > 0 else "Sunny")
     df['label_next'] = df['label'].shift(-1)
 
-    # Use only rain_lag_1
+    # Use rain_lag_1
     df['rain_flag'] = df['prcp'].gt(0).astype(int)
     df['rain_lag_1'] = df['rain_flag'].shift(1)
     df = df.dropna(subset=["label_next", "rain_lag_1"]).reset_index(drop=True)
@@ -56,14 +56,14 @@ def load_file(path):
 def forecast(df, last_date, n_days):
     feat_clf = ["tavg", "tmin", "tmax", "wspd", "pres", "rain_lag_1"]
     feat_reg = ["tavg", "tmin", "tmax", "wspd", "pres", "prcp", "rain_lag_1"]
-    reg_targets = ["tmax", "tmin", "prcp", "pres"]
+    reg_targets = ["tmax", "tmin", "prcp", "pres", "wspd"]
 
     # Train-test split for Naive Bayes
     X_clf = df[feat_clf]
     y_clf = df["label_next"]
     X_train_clf, X_test_clf, y_train_clf, y_test_clf = train_test_split(
         X_clf, y_clf, test_size=0.2, random_state=42, stratify=y_clf)
-
+    
     # Normalize features for Naive Bayes
     scaler = StandardScaler()
     X_train_scaled = scaler.fit_transform(X_train_clf)
@@ -117,6 +117,7 @@ def forecast(df, last_date, n_days):
             "Tmax (°C)": f"{preds['tmax']:.1f}",
             "Tmin (°C)": f"{preds['tmin']:.1f}",
             "Precipitation (mm)": f"{preds['prcp']:.1f}",
+            "Wind Speed (m/s)": f"{preds['wspd']:.1f}",
             "Pressure (hPa)": f"{preds['pres']:.1f}"
         })
 
@@ -126,7 +127,7 @@ def forecast(df, last_date, n_days):
             'tavg': (preds['tmax'] + preds['tmin']) / 2,
             'tmin': preds['tmin'],
             'tmax': preds['tmax'],
-            'wspd': last['wspd'],
+            'wspd': preds['wspd'],
             'pres': preds['pres'],
             'prcp': preds['prcp'],
             'rain_lag_1': new_rain
